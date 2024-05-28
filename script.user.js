@@ -17,48 +17,51 @@
 
 (function() {
     'use strict';
-    let observer, keepScrolling = false
+    let targetScroll, keepScrolling = false
 
     const cssCustomDiv = {position: 'absolute', top: '25%', right:'1%', 'z-index': 3}
     const customDiv = document.createElement('div')
-    const customDivStyle = customDiv.style
 
-    Object.keys(cssCustomDiv).forEach(key => { customDivStyle[key] = cssCustomDiv[key]} )
+    Object.keys(cssCustomDiv).forEach(key => {customDiv.style[key] = cssCustomDiv[key]})
     document.getElementById('page_header_wrap').appendChild(customDiv)
 
-    const config = { attributes: false, childList: true, subtree: false }
-    const callback = () => {if (keepScrolling) doScroll()};
-
-    // Setup all stuff after page loaded
     window.addEventListener('load', () => {
+        // first album id. First on screen but last as added (85349353, 85349352, 85349351, ...)
+        const firstId = parseInt(document.getElementsByClassName('audio_page_block__playlists_items _audio_page_block__playlists_items CatalogBlock__itemsContainer')[0].firstChild.dataset.id.split('_')[1])
+
+        //Create custom button
         const button = document.createElement('button')
-        button.innerHTML = 'Go to last played album'
         button.onclick = doScroll
+        button.innerHTML = 'Last played album'
         customDiv.appendChild(button)
+        updateProgress(button)
 
-        const className = '.audio_page_block__playlists_items._audio_page_block__playlists_items.CatalogBlock__itemsContainer'
-        const targetNode = document.querySelector(className)
-        observer = new MutationObserver(callback)
+        // Setup observer
+        const targetNode = document.querySelector('.audio_page_block__playlists_items._audio_page_block__playlists_items.CatalogBlock__itemsContainer')
+        const config = { attributes: false, childList: true, subtree: false }
+        const callback = () => {if (keepScrolling) doScroll()};
+        const observer = new MutationObserver(callback)
         observer.observe(targetNode, config)
+
+        // Hook function that executes on the (album) play button pressed
+        const old = getAudioPlayer().playPlaylist;
+        getAudioPlayer().playPlaylist = async function() {
+            old.apply(this, arguments);
+            const id = firstId - arguments['1'] + 1;
+            GM.setValue('scrollY', scrollY)
+            GM.setValue('savedId', id)
+        };
     })
 
-    // Probably unnecessary
-    window.addEventListener("beforeunload", function() {
-        observer.disconnect()
-    })
-
-    // Hook function that executes on play button (on an album) pressed
-    const old = getAudioPlayer().playPlaylist;
-    getAudioPlayer().playPlaylist = async function() {
-        old.apply(this, arguments);
-        await GM.setValue('scrollY', scrollY)
-        console.log('Saved scroll position')
-    };
+    async function updateProgress(btn) {
+        const albums = document.getElementsByClassName('CatalogBlock__title CatalogGroupOnlyPlaylistsHeader')[0].innerText.split(' ')[0]
+        const id = await GM.getValue('savedId', 0)
+        btn.innerHTML = `Last played album (${id}/${albums})`
+        targetScroll = {top: await GM.getValue('scrollY', 0)}
+     }
 
     async function doScroll() {
-        const targetScroll = {top: await GM.getValue('scrollY', scrollY)}
         window.scroll(targetScroll)
         keepScrolling = scrollY != targetScroll.top
     }
 })();
-
