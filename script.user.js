@@ -15,6 +15,8 @@
 // @grant        GM.setValue
 // ==/UserScript==
 
+/* global getAudioPlayer:readonly */
+
 (function() {
     'use strict';
     let targetScroll, keepScrolling = false
