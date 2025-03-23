@@ -15,7 +15,7 @@
 // @grant        GM.setValue
 // ==/UserScript==
 
-/* global getAudioPlayer:readonly */
+/* global AudioUtils:readonly */
 
 (function() {
     'use strict';
@@ -28,10 +28,10 @@
     document.getElementById('page_header_wrap').appendChild(customDiv)
 
     window.addEventListener('load', () => {
-        // first album id. First on screen but last as added (85349353, 85349352, 85349351, ...)
+        // First album id. First on screen but added as a last one (85349353, 85349352, 85349351, ...)
         const firstId = parseInt(document.getElementsByClassName('audio_page_block__playlists_items _audio_page_block__playlists_items CatalogBlock__itemsContainer')[0].firstChild.dataset.id.split('_')[1])
 
-        //Create custom button
+        // Create custom button
         const button = document.createElement('button')
         button.onclick = doScroll
         button.innerHTML = 'Last played album'
@@ -45,13 +45,14 @@
         const observer = new MutationObserver(callback)
         observer.observe(targetNode, config)
 
-        // Hook function that executes on the (album) play button pressed
-        const old = getAudioPlayer().playPlaylist;
-        getAudioPlayer().playPlaylist = async function() {
+        // Update info on album follow
+        const old = AudioUtils.followPlaylist;
+        AudioUtils.followPlaylist = async function() {
             old.apply(this, arguments);
             const id = firstId - arguments['1'] + 1;
             GM.setValue('scrollY', scrollY)
             GM.setValue('savedId', id)
+            updateProgress(button)
         };
     })
 
