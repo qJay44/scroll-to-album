@@ -19,7 +19,7 @@
 
 (function() {
     'use strict';
-    let targetScroll, keepScrolling = false
+    let targetScroll
 
     const cssCustomDiv = {position: 'absolute', top: '25%', right:'1%', 'z-index': 3}
     const customDiv = document.createElement('div')
@@ -28,22 +28,15 @@
     document.getElementById('page_header_wrap').appendChild(customDiv)
 
     window.addEventListener('load', () => {
-        // First album id. First on screen but added as a last one (85349353, 85349352, 85349351, ...)
-        const firstId = parseInt(document.getElementsByClassName('audio_page_block__playlists_items _audio_page_block__playlists_items CatalogBlock__itemsContainer')[0].firstChild.dataset.id.split('_')[1])
+        // First album id. Starting with the last added (85349353, 85349352, 85349351, ...)
+        const targetNode = document.querySelector('.audio_page_block__playlists_items._audio_page_block__playlists_items.CatalogBlock__itemsContainer')
+        const firstId = parseInt(targetNode.firstChild.dataset.id.split('_')[1])
 
         // Create custom button
         const button = document.createElement('button')
-        button.onclick = doScroll
-        button.innerHTML = 'Last played album'
+        button.onclick = () => {window.scroll(targetScroll)}
         customDiv.appendChild(button)
         updateProgress(button)
-
-        // Setup observer
-        const targetNode = document.querySelector('.audio_page_block__playlists_items._audio_page_block__playlists_items.CatalogBlock__itemsContainer')
-        const config = { attributes: false, childList: true, subtree: false }
-        const callback = () => {if (keepScrolling) doScroll()};
-        const observer = new MutationObserver(callback)
-        observer.observe(targetNode, config)
 
         // Update info on album follow
         const old = AudioUtils.followPlaylist;
@@ -53,8 +46,22 @@
             GM.setValue('scrollY', scrollY)
             GM.setValue('savedId', id)
             updateProgress(button)
+            saveAlbumsCache(targetNode)
         };
+
+        loadAlbumsCache(targetNode)
     })
+
+    function loadAlbumsCache(container) {
+        const cache = localStorage.getItem('AlbumsCache')
+        if (cache != null) {
+            container.innerHTML = cache
+        }
+    }
+
+    async function saveAlbumsCache(container) {
+        localStorage.setItem('AlbumsCache', container.innerHTML)
+    }
 
     async function updateProgress(btn) {
         const albums = document.getElementsByClassName('CatalogBlock__title CatalogGroupOnlyPlaylistsHeader')[0].innerText.split(' ')[0]
@@ -62,9 +69,4 @@
         btn.innerHTML = `Last played album (${id}/${albums})`
         targetScroll = {top: await GM.getValue('scrollY', 0)}
      }
-
-    async function doScroll() {
-        window.scroll(targetScroll)
-        keepScrolling = scrollY != targetScroll.top
-    }
 })();
