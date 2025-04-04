@@ -49,7 +49,7 @@
         const old = AudioUtils.followPlaylist;
         AudioUtils.followPlaylist = async function() {
             old.apply(this, arguments);
-            const id = firstId - arguments['1'] + 1;
+            const id = firstId - arguments['2'] + 1;
             GM.setValue('scrollY', scrollY)
             GM.setValue('savedId', id)
             updateProgress(button)
